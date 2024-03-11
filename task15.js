@@ -25,5 +25,19 @@ const binarySearch = (array, item) => {
     return [position, -1]
 }
 
-const [position, count] = binarySearch(array, 2)
+const binarySearchRecursive = (array, item, start, end) => {
+    let middle = Math.floor((start + end) / 2)
+    if (item === array[middle])
+        return middle
+    if (item < array[middle]) {
+        return binarySearchRecursive(array, item, start, middle - 1)
+    }
+    if (item > array[middle])
+        return binarySearchRecursive(array, item, middle + 1, end)
+
+}
+
+const [position, count] = binarySearch(array, 14)
 console.log(position, count)
+let len = array.length
+console.log(binarySearchRecursive(array, 14, 0, len))
