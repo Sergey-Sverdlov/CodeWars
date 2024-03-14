@@ -12,6 +12,7 @@ const breadthSearch = (graph, start, end) => {
     let queue = []
     queue.push(start)
     while (queue.length > 0) {
+        console.log(queue)
         const current = queue.shift()
         if (!graph[current]) {
             graph[current] = []
