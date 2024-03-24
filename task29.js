@@ -8,117 +8,72 @@ const STATE = {
 
 class MyPromise {
     #thenCbs = []
-    #catchCbs = []
+    #catchCb = undefined
     #state = STATE.PENDING
     #value
-    #onSuccessBind = this.#onSuccess.bind(this)
-    #onFailBind = this.#onFail.bind(this)
 
-    #runCallbacks() {
+    #runCallbacks() { // реализовать через reduce
         if (this.#state === STATE.FULFILLED) {
-            this.#thenCbs.forEach(callback => {
-                callback(this.#value)
-            })
+            // this.#thenCbs.forEach(callback => {
+            //     this.#value = callback(this.#value)
+            // })
+            this.#value = this.#thenCbs.reduce((acc, callback) => {
+                return callback(acc)
+            }, this.#value)
 
             this.#thenCbs = []
         }
 
         if (this.#state === STATE.REJECTED) {
-            console.log("re")
-            this.#catchCbs.forEach(callback => {
-                callback(this.#value)
-            })
-
-            this.#catchCbs = []
+            this.#value = this.#catchCb(this.#value);
+            this.#catchCb = undefined
         }
     }
 
     constructor(cb) {
-        try {
-            cb(this.#onSuccessBind, this.#onFailBind)
-        } catch (e) {
-            this.#onFail(e)
-        }
+        cb(this.#resolve, this.#reject)
     }
 
-    #onSuccess(value) {
+    #resolve = value => {
         queueMicrotask(() => {
             if (this.#state !== STATE.PENDING) return
-
-            if (value instanceof MyPromise) {
-                value.then(this.#onSuccessBind, this.#onFailBind)
-                return
-            }
-
             this.#value = value
             this.#state = STATE.FULFILLED
             this.#runCallbacks()
         })
     }
-    #onFail(value) {
+
+    #reject = value => {
         queueMicrotask(() => {
             if (this.#state !== STATE.PENDING) return
-
-            if (value instanceof MyPromise) {
-                value.then(this.#onSuccessBind, this.#onFailBind)
-                return
-            }
-
-            if (this.#catchCbs.length === 0) {
-                throw new UncaughtPromiseError(value)
-            }
-
             this.#value = value
             this.#state = STATE.REJECTED
             this.#runCallbacks()
         })
     }
 
-    then(thenCb, catchCb) {
-        return new MyPromise((resolve, reject) => {
-            this.#thenCbs.push(result => {
-                if (thenCb == null) {
-                    resolve(result)
-                    return
-                }
-
-                try {
-                    resolve(thenCb(result))
-                } catch (error) {
-                    reject(error)
-                }
-            })
-
-            this.#catchCbs.push(result => {
-                if (catchCb == null) {
-                    reject(result)
-                    return
-                }
-
-                try {
-                    resolve(catchCb(result))
-                } catch (error) {
-                    reject(error)
-                }
-            })
-
-            this.#runCallbacks()
-        })
+    then(thenCb) {
+        this.#thenCbs.push(thenCb)
+        return this
     }
 
     catch(cb) {
-        return this.then(undefined, cb)
+        if (!this.#catchCb)
+            this.#catchCb = cb
+        return this
     }
-
-
 }
 
 new MyPromise((resolve, reject) => {
     resolve(500)
-}).then(res => res += 5).then(x => {
-    console.log(x)
-    x += 10
-    return x
-}).then(res => {
-    console.log(res)
-}).catch(e=>console.log(e))
+})
+    .then(res => res += 5)
+    .then(x => {
+        console.log(x)
+        x += 10
+        return x
+    })
+    .then(res => {
+        console.log(res)
+    })
+    .catch(x => console.log(x))
